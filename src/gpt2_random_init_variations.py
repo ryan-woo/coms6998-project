@@ -105,8 +105,8 @@ def main():
             ("drop",) + tuple(f"encoder.h.{i}" for i in range(n_layer))
         )
 
-    for model_class in [XavierInitGPT2Model, XavierUniformInitGPT2Model, HeInitGPT2Model]:
-        score(benchmark="Pereira2018-encoding", model=f"untrained-{HeInitGPT2Model}-embedding-gpt2-test")
+    for model_class in [XavierNormalInitGPT2Model, XavierUniformInitGPT2Model, HeInitGPT2Model]:
+        score(benchmark="Pereira2018-encoding", model=f"untrained-{model_class}-embedding-gpt2-test")
 
 if __name__ == "__main__":
     main()
