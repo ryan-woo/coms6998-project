@@ -52,7 +52,7 @@ class XavierUniformInitGPT2Model(GPT2Model):
         if isinstance(module, (nn.Linear, nn.Embedding, Conv1D)):
             # Slightly different from the TF version which uses truncated_normal for initialization
             # cf https://github.com/pytorch/pytorch/pull/5617
-            torch.nn.init.xavier_uniform_(module.weight)
+            nn.init.xavier_uniform_(module.weight)
             # module.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
             if isinstance(module, (nn.Linear, Conv1D)) and module.bias is not None:
                 module.bias.data.zero_()
@@ -95,7 +95,7 @@ def untrained_random_init_gpt2_test(model_class: GPT2Model):
 def main():
     n_layer = 12
 
-    for model_class in [XavierInitGPT2Model, XavierUniformInitGPT2Model, HeInitGPT2Model]:
+    for model_class in [XavierNormalInitGPT2Model, XavierUniformInitGPT2Model, HeInitGPT2Model]:
         model_pool[f"untrained-{model_class}-embedding-gpt2-test"] = (
             lambda e: LazyLoad(
                 lambda: untrained_random_init_gpt2_test(e)
@@ -106,7 +106,7 @@ def main():
         )
 
     for model_class in [XavierInitGPT2Model, XavierUniformInitGPT2Model, HeInitGPT2Model]:
-        score(benchmark="Pereira2018-encoding", model=f"untrained-{model_class}-embedding-gpt2-test")
+        score(benchmark="Pereira2018-encoding", model=f"untrained-{HeInitGPT2Model}-embedding-gpt2-test")
 
 if __name__ == "__main__":
     main()
