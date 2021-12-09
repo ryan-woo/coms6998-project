@@ -1,0 +1,117 @@
+__init__.py -> score (entrance)
+	- loads model and benchmark from respective pools (lazily instantiated)
+	- iterates through each named layer
+		- for layer 0, it eagerly computes and stores all the layer representations (FixedLayer#prerun)
+		- run it through the benchmark
+		- add the layer name as a label
+		- merge the scores (brainscore.metrics.Score#merge)
+			- what does this do?
+		- layer_scores.sel(layer=layers)
+			- what does this do?
+
+models/implementations.py -> has the models
+	- lazy
+	- initialize model from hugging face (output_hidden_states=True)
+	- initialize tokenizer from hugging face
+	- wrap in _PytorchTransformerWrapper (implements BrainModel interface)
+		tokenizer_special_tokens -> used for aligning word piece representations with their source words?  these tokens/characters are ignored
+		layers -> names for output
+		sentence_average -> which embedding to use?
+	- shove it into model_pool and model_layers (used so you don’t have to specify layer names when running from CL)
+	- class _PytorchTransformerWrapper
+		- implements BrainModel interface: 
+			https://brain-score.readthedocs.io/en/latest/modules/model_interface.html
+		- look_at
+			- digest a set of stimuli and return the requested outputs (has number of trials parameter for stochastic models)
+		- start_recording
+			- tells the model to begin recording in a specified RecordngTarget and return the specified time_bins
+			- returns neuroid assembly with three dimensions
+				- presentation: the presented stimuli (argument of look_at)
+				- neuroid: the recorded neuroids
+				- time_bins: the time bins of each recording slice
+		- start_task
+			- instruct model to begin one of the tasks specified in Task 
+		- #__call__
+			- invoked by _PereiraBenchmark#__call__
+			- model is in BrainModel.Modes.recording by default
+				- delegates to _call_conditional_average with:
+					story_stimuli = the sentence for a particular story
+					average_sentence = True
+					extractor = ActivationsExtractorHelper(
+						identifier=‘gpt2’,
+						get_activations=self.ModelContainer(tokenizer, gpt2, layer names, tokenizer_special_tokens),
+						rest=lambda: None
+					)
+					sentence_averaging=word_last (just gets the last hidden state — implementations.py:549)
+		- _call_conditional_average (implementations.py:1106)
+			- if averaging (really just means pooling of some kind since the averaging method is word_last), registers an activation hook on ActivationsExtractorHelper 
+			- passes args and kwargs to ActivationsExtractorHelper 
+	- class ModelContainer
+		- #__call__
+			- tokenizes sentences in group (full story) and flattens them?
+			- aligns tokens with words (to retrieve sentences after)
+			- pass through model
+			- gets sentence representations back out using aligned token representations
+			- ** we can do all of this much more cleanly using the Fast tokenizers in the transformers repo **
+
+Models/wrapper/core.py
+	- class ActivationsExtractorHelper
+		- #__call__
+			- passes it a StimulusSet, delegates to #from_stimulus_set
+		- #from_stimulus_set
+			- applies any stimulus pre-hooks (none here)
+			- delegates to #from_sentences
+			- attaches any stimulus_set meta (what does this doe?  is it important?)
+		- #from_sentences
+			- either retrieves from cache or delegates to _from_sentences
+		- #_from_sentences
+			- gets activations from #self.get_activations
+			- applies each activation hook to the activations (getting last embedding for each layer)
+			- packages the activation outputs into another assembly (lots going on here… I think it just assigns some identifiers)
+		
+benchmarks/neural.py
+	- benchmark_pool (lazy)
+		‘Pereira2018-encoding’ -> PereiraEncoding	
+	- class PereiraEncoding
+		- subclasses _PereiraBenchmark
+		- ceiling
+			- has hook which downloads and loads this from s3 (expensive to compute)
+		- sets _PereiraBenchmark.metric
+			- brainscore.metrics.regression.CrossRegressedCorrelation
+				regression = brainscore.metrics.regression.linear_regression (stimulus_coord = stimulus_id)
+				correlation = brainscore.metrics.regression.pearsonr_correlation (correlation_coord='stimulus_id’)
+				cross validation = 5-fold, split_coord=‘stimulus_id’, stratification_coord=None
+	- class _PereiraBenchmark
+		- subclasses brainscore.benchmarks.Benchmark
+		- initialization:
+			- lazily loads _target_assembly (w/ data_version=‘base’)
+			- sets _ceiler to PereiraExtrapolationceiling(subject_column=‘subject’, num_bootstraps=100)
+				- this is also not run (cached in S3) 
+			- sets _cross to brainscore.metrics.transformations.CartesianProduct(dividers=[‘experiment’, ‘atlas’])
+		- load_assembly
+			- has hook that loads from S3 when called (otherwise goes through load_Pereira2018_Blank)
+				- additionally runs assembly#sel(atlast_selection_lower=90) and looks (but does not select for?)
+				filter strategies in np.nan, HminusE and FIXminusH
+				- what does this do?  does this also happen when loading from S3 (I don’t think so….)
+		- __call__
+			- runs a candidate model (implementing the BrainModel interface) against a datasets turns a value between 0 and 1 (that is already ceiled)
+			1) gets stimulus set (sentences) from target assembly
+			2) sets passage_id to the experiment + the passage_index
+			3) calls listen_to w/ the candidate, the stimulus_set and a “reset_column” of passage_id
+				- iterates through each story
+				- gets activations for all sentences in the story 
+					- candidate(stimuli, average_sentence=True) (is it averaging??)
+			4) runs _cross validation	with activations
+				(CartesianProduct w/ dividers experiment & atlas)
+				- _apply_cross
+					- #dropna(‘neuroid’) from cross assembly and source assembly
+				- runs through _single_metric (which is the CrossRegressedCorrelation)
+			5) runs brainscore.metrics.transformations.apply_aggregate to raw_scores
+				- lambda: take the mean of split and experiment?
+			6) select language_neuroids (via atlas=‘language’)
+			7) calls aggregate_ceiling on language_neuroids w/ subject column=‘subject’
+				- groups scores by subject, takes their median
+				- takes the median of the medians
+				- divide by the ceiling
+				- returns that score!
+
