@@ -71,7 +71,7 @@ def raw_score(experiments, experiment_stimuli, passage_activations, folds=5, lay
         # (though really they should be by passage_id given how we're doing the GPT2 encoding...
         # otherwise the test set will leak into the train set...)
         # in the brain-score repo, CrossRegressedCorrelation uses a train_size of 0.9
-        k_folds = GroupShuffleSplit(n_splits=folds, train_size=0.9, random_state=123)
+        k_folds = GroupShuffleSplit(n_splits=folds, train_size=0.9)
 
         for fold, (train_indices, test_indices) in enumerate(
                 k_folds.split(brain_reps, groups=experiment_stimuli[experiment])
