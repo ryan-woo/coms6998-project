@@ -39,10 +39,13 @@ def experiment_voxel_info(data: NeuroidAssembly):
     return experiment_voxels, experiment_voxel_ids, experiment_voxel_nas, experiment_stimuli
 
 
-def filter_na_voxels(experiment_voxels, experiment_voxel_ids, experiment_voxel_nas):
+def filter_na_voxels(experiment_voxels=None, experiment_voxel_ids=None, experiment_voxel_nas=None):
     """
     Filter voxels that are na from experiment_voxels
     """
+    if experiment_voxels is None or experiment_voxel_ids is None or experiment_voxel_nas is None:
+        raise ValueError
+
     experiments = {}
     for experiment in experiment_voxels:
         voxel_ids = experiment_voxel_ids[experiment]
@@ -59,7 +62,11 @@ def filter_na_voxels(experiment_voxels, experiment_voxel_ids, experiment_voxel_n
     return experiments, experiment_voxel_ids
 
 
-def raw_score(experiments, experiment_stimuli, passage_activations, folds=5):
+def raw_score(experiments=None, experiment_stimuli=None, passage_activations=None, folds=5):
+
+    if experiments is None or experiment_stimuli is None or passage_activations is None:
+        raise ValueError
+
     layers = passage_activations[list(passage_activations.keys())[0]].shape[0]
 
     experiment_pearsonrs = {
@@ -92,6 +99,7 @@ def raw_score(experiments, experiment_stimuli, passage_activations, folds=5):
                 model = LinearRegression().fit(train_hidden_states, train_brain_reps)
                 pred_brain_reps = model.predict(test_hidden_states)
 
+                nans = 0
                 for idx in range(test_brain_reps.shape[1]):
                     pred_voxels = pred_brain_reps[:, idx]
                     test_voxels = test_brain_reps[:, idx]
@@ -99,6 +107,8 @@ def raw_score(experiments, experiment_stimuli, passage_activations, folds=5):
 
                     if np.isnan(r):
                         r = 0.0
+                        nans += 1
+                        assert nans < 20
 
                     experiment_pearsonrs[experiment][fold][layer_num][idx] = r
 
@@ -117,9 +127,9 @@ def score(model, tokenizer):
         experiment_voxel_info(pereira_data)
 
     experiments, experiment_voxel_ids = filter_na_voxels(
-        experiment_voxels,
-        experiment_voxel_ids,
-        experiment_voxel_nas
+        experiment_voxels=experiment_voxels,
+        experiment_voxel_ids=experiment_voxel_ids,
+        experiment_voxel_nas=experiment_voxel_nas
     )
     experiment_pearsonrs = raw_score(experiments, experiment_stimuli, passage_activations)
     fold_average = util.fold_average(experiment_pearsonrs)
