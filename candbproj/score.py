@@ -59,7 +59,8 @@ def filter_na_voxels(experiment_voxels, experiment_voxel_ids, experiment_voxel_n
     return experiments, experiment_voxel_ids
 
 
-def raw_score(experiments, experiment_stimuli, passage_activations, folds=5, layers=13):
+def raw_score(experiments, experiment_stimuli, passage_activations, folds=5):
+    layers = passage_activations[list(passage_activations.keys())[0]].shape[0]
 
     experiment_pearsonrs = {
         experiment: np.zeros((folds, layers, experiments[experiment].shape[1]))
@@ -77,7 +78,7 @@ def raw_score(experiments, experiment_stimuli, passage_activations, folds=5, lay
                 k_folds.split(brain_reps, groups=experiment_stimuli[experiment])
         ):
             train_brain_reps, test_brain_reps = brain_reps[train_indices], brain_reps[test_indices]
-            for layer_num in tqdm(range(13), desc='%s-fold%s' % (experiment, fold)):
+            for layer_num in tqdm(range(layers), desc='%s-fold%s' % (experiment, fold)):
                 train_hidden_states = np.stack([
                     passage_activations[experiment_stimuli[experiment][brain_rep_idx]][layer_num].numpy()
                     for brain_rep_idx in train_indices
@@ -104,9 +105,7 @@ def raw_score(experiments, experiment_stimuli, passage_activations, folds=5, lay
     return experiment_pearsonrs
 
 
-def score(model, tokenizer, layers=13):
-
-
+def score(model, tokenizer):
 
     pereira_data = util.get_pereira()
     stimulus_set = util.get_stimulus_passages(pereira_data)
@@ -122,9 +121,9 @@ def score(model, tokenizer, layers=13):
         experiment_voxel_ids,
         experiment_voxel_nas
     )
-    experiment_pearsonrs = raw_score(experiments, experiment_stimuli, passage_activations, layers=layers)
+    experiment_pearsonrs = raw_score(experiments, experiment_stimuli, passage_activations)
     fold_average = util.fold_average(experiment_pearsonrs)
-    experiment_average, voxel_idxs = util.mean_across_experiments(experiment_voxel_ids, fold_average, layers=layers)
+    experiment_average, voxel_idxs = util.mean_across_experiments(experiment_voxel_ids, fold_average)
 
     scores = []
     subjects = {voxel_id: subject for voxel_id, subject in enumerate(pereira_data['subject'].values)}
@@ -133,7 +132,6 @@ def score(model, tokenizer, layers=13):
         for idx, voxel_id in enumerate(sorted(voxel_idxs.keys())):
             by_subject[subjects[voxel_id]].append(experiment_average[layer_num, idx])
         scores.append(np.median([np.median(subject_rs) for subject_rs in by_subject.values()]))
-    import pdb;    pdb.set_trace()
     return scores
 
 def normalize_scores(scores):

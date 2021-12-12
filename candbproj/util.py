@@ -112,8 +112,9 @@ def fold_average(experiment_pearsonrs):
     }
     return fold_average
 
-def mean_across_experiments(experiment_voxel_ids, fold_average, layers=13):
+def mean_across_experiments(experiment_voxel_ids, fold_average):
     voxel_ids = set()
+    layers = fold_average["384sentences"].shape[0]
     for experiment in experiment_voxel_ids:
         voxel_ids.update(experiment_voxel_ids[experiment])
     voxel_idxs = {voxel_id: idx for idx, voxel_id in enumerate(sorted(voxel_ids))}
