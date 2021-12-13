@@ -8,6 +8,7 @@ from transformers import GPT2TokenizerFast, GPT2Model
 import scipy
 
 from candbproj.score import score, normalize_scores
+from candbproj.feature_extractors import PassageTokenizer
 from candbproj.result import PereiraResult, Args
 
 logging.basicConfig()
@@ -26,16 +27,17 @@ def main():
             kwargs = {"output_hidden_states": True}
         )
         model = GPT2Model.from_pretrained(*model_args.args, **model_args.kwargs)
-
+        model = model.eval()
         tokenizer_args = Args(
             args=("gpt2",)
         )
         tokenizer = GPT2TokenizerFast.from_pretrained(*tokenizer_args.args)
-        model = model.eval()
+        feature_extractor = PassageTokenizer(tokenizer)
+
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", scipy.stats.PearsonRConstantInputWarning)  # Ignore the very many PearsonRCoefficient warnings
-            scores = score(model, tokenizer)
+            scores = score(model, feature_extractor)
 
         result = PereiraResult(
             scores=scores,
@@ -51,7 +53,6 @@ def main():
     scores = result.scores
     normalized_scores = normalize_scores(scores)
     print(scores, normalized_scores)
-
 
 if __name__ == "__main__":
     main()

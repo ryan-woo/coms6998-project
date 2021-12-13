@@ -7,6 +7,7 @@ from neural_nlp.benchmarks import benchmark_pool
 from neural_nlp.stimuli import StimulusSet
 from brainio_base.assemblies import NeuroidAssembly
 
+from candbproj import feature_extractors
 
 
 def get_pereira():
@@ -25,82 +26,38 @@ def get_stimulus_passages(data: NeuroidAssembly) -> StimulusSet:
     return stimulus_set
 
 
-def extract_passage_activations(
+def extract_activations(
     stimulus_set: StimulusSet,
     model: GPT2Model,
-    tokenizer: PreTrainedTokenizerBase
+    feature_extractor: feature_extractors.FeatureExtractor
 ):
-    # from stimulus_id -> 13 x 768 tensor (final representations from each layer)
+    # from stimulus_id -> # layers x 768 tensor (final representations from each layer)
     activations = {}
     for story in tqdm(sorted(set(stimulus_set['passage_id'].values))):
         story_stimuli = stimulus_set[stimulus_set['passage_id'] == story]
 
         sentences = []
         stimulus_ids = []
-        stimulus_ends = []
-        length_so_far = 0
         for _, stimulus in story_stimuli.sort_values(by='sentence_num', ascending=True).iterrows():
-            length_so_far += len(stimulus['sentence'])
             sentences.append(stimulus['sentence'])
             stimulus_ids.append(stimulus['stimulus_id'])
-            stimulus_ends.append(length_so_far - 1)
-
-            # we'll join the sentences with spaces
-            length_so_far += 1
 
         with torch.no_grad():
-            tokenized = tokenizer(
-                [' '.join(sentences)],
-                add_special_tokens=True,
-                return_tensors='pt'
-            )
+            stimulus_input_features, stimulus_output_coords = \
+                feature_extractor.extract_input_features(
+                    stimulus_ids, sentences
+                )
 
-            # note that the ending character here is usually a period
-            # (we can experiment w/ the last word by subtracting 1)
-            stimulus_token_ends = [
-                tokenized.char_to_token(stimulus_end) for stimulus_end in stimulus_ends
-            ]
+            output = model(**stimulus_input_features)
 
-            output = model(**tokenized)
-
-            for stimulus_id, stimulus_token_end in zip(stimulus_ids, stimulus_token_ends):
+            for stimulus_id, (stimulus_row, stimulus_col) in zip(stimulus_ids, stimulus_output_coords):
                 assert stimulus_id not in activations
 
-                # get hidden state of each final token for each stimulus
-
                 activations[stimulus_id] = torch.stack([
-                    output.hidden_states[i][0][stimulus_token_end] for i in range(len(output.hidden_states))
+                    output.hidden_states[i][stimulus_row][stimulus_col] for i in range(len(output.hidden_states))
                 ])
     return activations
 
-
-def extract_sentence_activations(
-    stimulus_set: StimulusSet,
-    model: GPT2Model,
-    tokenizer: PreTrainedTokenizerBase
-):
-    # from stimulus_id -> 13 x 768 tensor (final representations from each layer)
-    activations = {}
-    for stimulus_id in tqdm(sorted(set(stimulus_set['stimulus_id'].values))):
-        stimulus = stimulus_set[stimulus_set['stimulus_id'] == stimulus_id]
-
-        assert len(stimulus) == 1
-
-        with torch.no_grad():
-            tokenized = tokenizer(
-                [stimulus.iloc[0]['sentence']],
-                add_special_tokens=True,
-                return_tensors='pt'
-            )
-
-            output = model(**tokenized)
-
-            assert stimulus_id not in activations
-
-            activations[stimulus_id] = torch.stack([
-                output.hidden_states[i][0][-1] for i in range(len(output.hidden_states))
-            ])
-    return activations
 
 def fold_average(experiment_pearsonrs):
     """
@@ -111,6 +68,7 @@ def fold_average(experiment_pearsonrs):
         for experiment in experiment_pearsonrs
     }
     return fold_average
+
 
 def mean_across_experiments(experiment_voxel_ids, fold_average):
     voxel_ids = set()
