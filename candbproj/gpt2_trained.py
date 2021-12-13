@@ -5,6 +5,7 @@ from pathlib import Path
 
 import warnings
 from transformers import GPT2TokenizerFast, GPT2Model
+import scipy
 
 from candbproj.score import score, normalize_scores
 from candbproj.result import PereiraResult, Args
@@ -33,7 +34,7 @@ def main():
         model = model.eval()
 
         with warnings.catch_warnings():
-            warnings.simplefilter("ignore")  # Ignore the very many PearsonRCoefficient warnings
+            warnings.simplefilter("ignore", scipy.stats.PearsonRConstantInputWarning)  # Ignore the very many PearsonRCoefficient warnings
             scores = score(model, tokenizer)
 
         result = PereiraResult(
