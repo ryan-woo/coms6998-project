@@ -62,12 +62,12 @@ def filter_na_voxels(experiment_voxels=None, experiment_voxel_ids=None, experime
     return experiments, experiment_voxel_ids
 
 
-def raw_score(experiments=None, experiment_stimuli=None, passage_activations=None, folds=5):
+def raw_score(experiments=None, experiment_stimuli=None, activations=None, folds=5):
 
-    if experiments is None or experiment_stimuli is None or passage_activations is None:
+    if experiments is None or experiment_stimuli is None or activations is None:
         raise ValueError
 
-    layers = passage_activations[list(passage_activations.keys())[0]].shape[0]
+    layers = activations[list(activations.keys())[0]].shape[0]
 
     experiment_pearsonrs = {
         experiment: np.zeros((folds, layers, experiments[experiment].shape[1]))
@@ -87,11 +87,11 @@ def raw_score(experiments=None, experiment_stimuli=None, passage_activations=Non
             train_brain_reps, test_brain_reps = brain_reps[train_indices], brain_reps[test_indices]
             for layer_num in tqdm(range(layers), desc='%s-fold%s' % (experiment, fold)):
                 train_hidden_states = np.stack([
-                    passage_activations[experiment_stimuli[experiment][brain_rep_idx]][layer_num].numpy()
+                    activations[experiment_stimuli[experiment][brain_rep_idx]][layer_num].numpy()
                     for brain_rep_idx in train_indices
                 ])
                 test_hidden_states = np.stack([
-                    passage_activations[experiment_stimuli[experiment][brain_rep_idx]][layer_num].numpy()
+                    activations[experiment_stimuli[experiment][brain_rep_idx]][layer_num].numpy()
                     for brain_rep_idx in test_indices
                 ])
 
@@ -115,13 +115,12 @@ def raw_score(experiments=None, experiment_stimuli=None, passage_activations=Non
     return experiment_pearsonrs
 
 
-def score(model, tokenizer):
+def score(model, feature_extractor):
 
     pereira_data = util.get_pereira()
     stimulus_set = util.get_stimulus_passages(pereira_data)
 
-    passage_activations = util.extract_passage_activations(stimulus_set, model, tokenizer)
-    # sentence_activations = util.extract_sentence_activations(stimulus_set, model, tokenizer)
+    activations = util.extract_activations(stimulus_set, model, feature_extractor)
 
     experiment_voxels, experiment_voxel_ids, experiment_voxel_nas, experiment_stimuli = \
         experiment_voxel_info(pereira_data)
@@ -131,7 +130,7 @@ def score(model, tokenizer):
         experiment_voxel_ids=experiment_voxel_ids,
         experiment_voxel_nas=experiment_voxel_nas
     )
-    experiment_pearsonrs = raw_score(experiments, experiment_stimuli, passage_activations)
+    experiment_pearsonrs = raw_score(experiments, experiment_stimuli, activations)
     fold_average = util.fold_average(experiment_pearsonrs)
     experiment_average, voxel_idxs = util.mean_across_experiments(experiment_voxel_ids, fold_average)
 
@@ -147,6 +146,5 @@ def score(model, tokenizer):
 def normalize_scores(scores):
     pereira = benchmark_pool["Pereira2018-encoding"]
     scores = np.array(scores)
-    # import pdb; pdb.set_trace()
-    ceiling = pereira.ceiling.data.take(0)
+    ceiling = pereira.ceiling.sel(aggregation='center').item()
     return scores / ceiling
