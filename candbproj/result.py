@@ -16,3 +16,6 @@ class PereiraResult(BaseModel):
 
     class Config:
         arbitrary_types_allowed = True
+
+class PereiraResultSet(BaseModel):
+    results: List[PereiraResult]

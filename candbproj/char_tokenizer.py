@@ -10,12 +10,13 @@ import scipy
 from tokenizers import Tokenizer
 from transformers import GPT2Model, GPT2Tokenizer
 from candbproj.score import score, normalize_scores
-from candbproj.feature_extractors import FeatureExtractor
+from candbproj.feature_extractors import PassageTokenizer
 from candbproj.result import PereiraResult, Args
 
 
 logging.basicConfig()
 log = logging.getLogger()
+
 
 def create_char_tokenizer():
     """
@@ -40,44 +41,25 @@ def create_char_tokenizer():
     return tokenizer
 
 
-class WhitespaceReplacedPassageTokenizer(FeatureExtractor):
+class CharTokenizerWrapper:
+    """Required to be able to use a custom defined char_to_token() function
+    """
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
 
-    def extract_input_features(self, stimulus_ids, sentences):
-        assert len(stimulus_ids) == len(sentences)
+    def __call__(self, *args, **kwargs):
+        result = self.tokenizer(*args, **kwargs)
 
-        # Here is the different :)
-        sentences = [re.sub("\s", "~", sentence) for sentence in sentences]
+        def char_to_token(index):
+            return index
 
-        stimulus_ends = []
-        length_so_far = 0
-        for sentence in sentences:
-            length_so_far += len(sentence)
-            stimulus_ends.append(length_so_far - 1)
-
-            # we'll join the sentences with spaces
-            length_so_far += 1
-
-        tokenized = self.tokenizer(
-            ["~".join(sentences)],
-            add_special_tokens=True,
-            return_tensors='pt',
-        )
-
-        # note that the ending character here is usually a period
-        # (we can experiment w/ the last word by subtracting 1)
-        output_coords = [
-            (0, stimulus_end) for stimulus_end in stimulus_ends
-        ]
-
-        return tokenized, output_coords
+        result.char_to_token = char_to_token
+        return result
 
 
 def main():
 
     chartok_dir = Path(__file__).parent.resolve() / "../custom_tokenizers/chartok"
-    # chartok_dir = Path("chartok")
     if not chartok_dir.is_dir():
         # We must create the tokenizer from scratch
         chartok_dir.mkdir()
@@ -104,7 +86,12 @@ def main():
             args=(str(chartok_dir),)
         )
         tokenizer = GPT2Tokenizer.from_pretrained(*tokenizer_args.args)
-        feature_extractor = WhitespaceReplacedPassageTokenizer(tokenizer)
+        tokenizer = CharTokenizerWrapper(tokenizer)
+        feature_extractor = PassageTokenizer(
+            tokenizer,
+            sentence_delimiter="~",
+            sentence_preprocessor=lambda x: re.sub("\s", "~", x)
+        )
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", scipy.stats.PearsonRConstantInputWarning)  # Ignore the very many PearsonRCoefficient warnings
