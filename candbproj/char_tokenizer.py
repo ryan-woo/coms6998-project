@@ -62,8 +62,7 @@ class WhitespaceReplacedPassageTokenizer(FeatureExtractor):
         tokenized = self.tokenizer(
             [' '.join(sentences)],
             add_special_tokens=True,
-            return_tensors='pt',
-            padding=True
+            return_tensors='pt'
         )
 
         # note that the ending character here is usually a period
