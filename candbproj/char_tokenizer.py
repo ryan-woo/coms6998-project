@@ -24,7 +24,7 @@ def create_char_tokenizer():
 
     The tokenizer will fail to tokenize whitespace.
     As such it is required to pre-process input strings by replacing
-    whitespace with the special character ¥.
+    whitespace with the special character ~.
     :return: Tokenizer
     """
 
@@ -48,7 +48,7 @@ class WhitespaceReplacedPassageTokenizer(FeatureExtractor):
         assert len(stimulus_ids) == len(sentences)
 
         # Here is the different :)
-        sentences = [re.sub("\s", "¥", sentence) for sentence in sentences]
+        sentences = [re.sub("\s", "~", sentence) for sentence in sentences]
 
         stimulus_ends = []
         length_so_far = 0
@@ -60,7 +60,7 @@ class WhitespaceReplacedPassageTokenizer(FeatureExtractor):
             length_so_far += 1
 
         tokenized = self.tokenizer(
-            ["¥".join(sentences)],
+            ["~".join(sentences)],
             add_special_tokens=True,
             return_tensors='pt',
         )
@@ -68,7 +68,7 @@ class WhitespaceReplacedPassageTokenizer(FeatureExtractor):
         # note that the ending character here is usually a period
         # (we can experiment w/ the last word by subtracting 1)
         output_coords = [
-            (0, tokenized.char_to_token(stimulus_end)) for stimulus_end in stimulus_ends
+            (0, stimulus_end) for stimulus_end in stimulus_ends
         ]
 
         return tokenized, output_coords
@@ -82,23 +82,11 @@ def main():
         # We must create the tokenizer from scratch
         chartok_dir.mkdir()
         tokenizer = create_char_tokenizer()
-        # tokenizer.save_pretrained(chartok_dir)
-        # import pdb; pdb.set_trace()
         tokenizer.model.save(str(chartok_dir))
         # Because the tokenizer is WordLevel, it does not create a merges.txt normally.
         # We create an empty merges.txt, which forces GPT2Tokenizers to effectively
         # use the tokenizer as a character-level tokenizer.
         open(chartok_dir / "merges.txt", "w").close()
-
-    model = GPT2Model.from_pretrained("gpt2")
-    gpt2_tokenizer = GPT2Tokenizer.from_pretrained(str(chartok_dir))
-
-    tokenized = gpt2_tokenizer(["aaa¥bbb"], return_tensors="pt")
-    print(tokenized["input_ids"])
-    embed = model.wte(tokenized["input_ids"])
-    print(embed)
-
-## Copied from gpt2_Trained
 
 
     gpt2_char_tokenizer_result = Path(__file__).parent.resolve() / "../results/gpt2_char_tokenizer_result.pkl"

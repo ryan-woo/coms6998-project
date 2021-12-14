@@ -41,7 +41,7 @@ class PassageTokenizer(FeatureExtractor):
 
     def extract_input_features(self, stimulus_ids, sentences):
         assert len(stimulus_ids) == len(sentences)
-        
+
         stimulus_ends = []
         length_so_far = 0
         for sentence in sentences:
