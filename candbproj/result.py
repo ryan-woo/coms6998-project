@@ -9,6 +9,7 @@ class Args(BaseModel):
     kwargs: Dict = Field(None, description="The kwargs dict passed to `from_pretrained`")
 
 class PereiraResult(BaseModel):
+    seed: int 
     scores: list = Field(..., description="The scores for this result")
     model_args: Args = Field(None, description="The args and kwargs passed to `from_pretrained` for the model")
     model_config: GPT2Config = Field(None, description="The model's config")
