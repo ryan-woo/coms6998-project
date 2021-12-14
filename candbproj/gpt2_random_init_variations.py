@@ -8,6 +8,7 @@ import torch.nn as nn
 from transformers.modeling_utils import Conv1D
 import scipy
 
+from candbproj import util
 from candbproj.score import score, normalize_scores
 from candbproj.feature_extractors import PassageTokenizer
 from candbproj.result import PereiraResult, Args
@@ -80,55 +81,61 @@ class HeInitGPT2Model(GPT2Model):
             module.bias.data.zero_()
             module.weight.data.fill_(1.0)
 
+RESULTS_DIR = Path(__file__).parent.resolve() / "../results"
+
+def get_model_results_path(model_class, seed):
+    return RESULTS_DIR / f"{model_class.__name__}-{seed}.pkl"
+
 def main():
+    for seed in range(0, 1000, 100):
+        util.seeder(seed)
 
-    gpt2_result_path = Path(__file__).parent.resolve() / "../results"
-    model_classes = (XavierUniformInitGPT2Model, XavierNormalInitGPT2Model, HeInitGPT2Model)
-    if all([(gpt2_result_path / f"{model_class.__name__}").exists() for model_class in model_classes]):
-        results = {}
-        for model_class in model_classes:
-            gpt2_model_result_path = gpt2_result_path / f"{model_class.__name__}"
-            with open(gpt2_model_result_path, "rb") as f:
-                result = pickle.load(f)
-                results[model_class.__name__] = result
-    else:
-        results = {}
-        for model_class in model_classes:
+        model_classes = (XavierUniformInitGPT2Model, XavierNormalInitGPT2Model, HeInitGPT2Model)
+        if all([(gpt2_result_path / f"{model_class.__name__}").exists() for model_class in model_classes]):
+            results = {}
+            for model_class in model_classes:
+                gpt2_model_result_path = get_model_results_path(model_class, seed)
+                with open(gpt2_model_result_path, "rb") as f:
+                    result = pickle.load(f)
+                    results[(model_class.__name__, seed)] = result
+        else:
+            results = {}
+            for model_class in model_classes:
+                gpt2_model_result_path = get_model_results_path(model_class, seed)
 
-            gpt2_model_result_path = gpt2_result_path / f"{model_class.__name__}"
+                model_config = GPT2Config.from_pretrained("gpt2")
+                model_config.output_hidden_states = True
+                model = model_class(model_config)
+                tokenizer_args = Args(
+                    args=("gpt2",)
+                )
+                tokenizer = GPT2TokenizerFast.from_pretrained(*tokenizer_args.args)
+                feature_extractor = PassageTokenizer(tokenizer)
+                model = model.eval()
 
-            model_config = GPT2Config.from_pretrained("gpt2")
-            model_config.output_hidden_states = True
-            model = model_class(model_config)
-            tokenizer_args = Args(
-                args=("gpt2",)
-            )
-            tokenizer = GPT2TokenizerFast.from_pretrained(*tokenizer_args.args)
-            feature_extractor = PassageTokenizer(tokenizer)
-            model = model.eval()
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", scipy.stats.PearsonRConstantInputWarning)  # Ignore the very many PearsonRCoefficient warnings
+                    scores = score(model, feature_extractor, seed=seed)
 
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", scipy.stats.PearsonRConstantInputWarning)  # Ignore the very many PearsonRCoefficient warnings
-                scores = score(model, feature_extractor)
+                result = PereiraResult(
+                    seed=seed,
+                    scores=scores,
+                    model_config=model_config,
+                    tokenizer_args=tokenizer_args
+                )
 
-            result = PereiraResult(
-                scores=scores,
-                model_config=model_config,
-                tokenizer_args=tokenizer_args
-            )
+                results[(model_class.__name__, seed)] = result
+                try:
+                    with open(gpt2_model_result_path, "wb") as f:
+                        pickle.dump(result, f)
+                except OSError:
+                    log.warning("Warning: could not write result to file", exc_info=True)
 
-            results[model_class.__name__] = result
-            try:
-                with open(gpt2_model_result_path, "wb") as f:
-                    pickle.dump(result, f)
-            except OSError:
-                log.warning("Warning: could not write result to file", exc_info=True)
+        for (model_class, seed), result in results.items():
+            scores = result.scores
+            normalized_scores = normalize_scores(scores)
 
-    for model_class, result in results.items():
-        scores = result.scores
-        normalized_scores = normalize_scores(scores)
-
-        print(f": {result.model_config.n_head}", scores, normalized_scores)
+            print(f": {result.model_config.n_head}", scores, normalized_scores)
 
 
 if __name__ == "__main__":

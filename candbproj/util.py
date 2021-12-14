@@ -1,7 +1,8 @@
 import torch
-from tqdm import tqdm
-from transformers import PreTrainedTokenizerBase, GPT2Model
 import numpy as np
+from tqdm import tqdm
+
+from transformers import PreTrainedTokenizerBase, GPT2Model
 
 from neural_nlp.benchmarks import benchmark_pool
 from neural_nlp.stimuli import StimulusSet
@@ -9,6 +10,11 @@ from brainio_base.assemblies import NeuroidAssembly
 
 from candbproj import feature_extractors
 
+
+def seeder(seed):
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    
 
 def get_pereira():
     pereira = benchmark_pool["Pereira2018-encoding"]

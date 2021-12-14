@@ -62,7 +62,7 @@ def filter_na_voxels(experiment_voxels=None, experiment_voxel_ids=None, experime
     return experiments, experiment_voxel_ids
 
 
-def raw_score(experiments=None, experiment_stimuli=None, activations=None, folds=5):
+def raw_score(experiments=None, experiment_stimuli=None, activations=None, folds=5, seed=100):
 
     if experiments is None or experiment_stimuli is None or activations is None:
         raise ValueError
@@ -79,7 +79,7 @@ def raw_score(experiments=None, experiment_stimuli=None, activations=None, folds
         # (though really they should be by passage_id given how we're doing the GPT2 encoding...
         # otherwise the test set will leak into the train set...)
         # in the brain-score repo, CrossRegressedCorrelation uses a train_size of 0.9
-        k_folds = GroupShuffleSplit(n_splits=folds, train_size=0.9)
+        k_folds = GroupShuffleSplit(n_splits=folds, train_size=0.9, random_state=100)
 
         for fold, (train_indices, test_indices) in enumerate(
                 k_folds.split(brain_reps, groups=experiment_stimuli[experiment])
@@ -115,7 +115,7 @@ def raw_score(experiments=None, experiment_stimuli=None, activations=None, folds
     return experiment_pearsonrs
 
 
-def score(model, feature_extractor):
+def score(model, feature_extractor, seed):
 
     pereira_data = util.get_pereira()
     stimulus_set = util.get_stimulus_passages(pereira_data)
@@ -130,7 +130,7 @@ def score(model, feature_extractor):
         experiment_voxel_ids=experiment_voxel_ids,
         experiment_voxel_nas=experiment_voxel_nas
     )
-    experiment_pearsonrs = raw_score(experiments, experiment_stimuli, activations)
+    experiment_pearsonrs = raw_score(experiments, experiment_stimuli, activations, seed=seed)
     fold_average = util.fold_average(experiment_pearsonrs)
     experiment_average, voxel_idxs = util.mean_across_experiments(experiment_voxel_ids, fold_average)
 
