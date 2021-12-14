@@ -1,4 +1,7 @@
+from typing import Callable
+
 class FeatureExtractor:
+
     def extract_input_features(self, stimulus_ids, sentences):
         raise Exception("Not implemented!")
 
@@ -36,12 +39,17 @@ class SentenceTokenizer(FeatureExtractor):
 
 
 class PassageTokenizer(FeatureExtractor):
-    def __init__(self, tokenizer):
+    def __init__(self, tokenizer, sentence_delimiter: str = " ", sentence_preprocessor: Callable = None):
         self.tokenizer = tokenizer
+        self.sentence_delimiter = sentence_delimiter
+        self.sentence_preprocessor = sentence_preprocessor
 
     def extract_input_features(self, stimulus_ids, sentences):
         assert len(stimulus_ids) == len(sentences)
-        
+
+        if self.sentence_preprocessor is not None:
+            sentences = [self.sentence_preprocessor(sentence) for sentence in sentences]
+
         stimulus_ends = []
         length_so_far = 0
         for sentence in sentences:
@@ -52,7 +60,7 @@ class PassageTokenizer(FeatureExtractor):
             length_so_far += 1
 
         tokenized = self.tokenizer(
-            [' '.join(sentences)],
+            [self.sentence_delimiter.join(sentences)],
             add_special_tokens=True,
             return_tensors='pt'
         )
