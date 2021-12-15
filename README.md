@@ -18,3 +18,15 @@ source .venv/bin/activate
 pip install .
 ```
 
+# Running
+
+To run a scoring script, simply run
+```
+cd candbproj
+python gpt2_trained.py
+```
+
+In order to run the scoring function `n` times, each with a different random seed, do
+```
+python gpt2_trained.py -n <n>
+```
