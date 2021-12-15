@@ -53,11 +53,12 @@ def main():
 
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", scipy.stats.PearsonRConstantInputWarning)  # Ignore the very many PearsonRCoefficient warnings
-                scores = score(model, feature_extractor, seed=seed)
+                raw_scores, scores = score(model, feature_extractor, seed=seed)
 
             result = PereiraResult(
                 seed=seed,
                 scores=scores,
+                raw_scores=raw_scores,
                 model_args=model_args,
                 tokenizer_args=tokenizer_args
             )

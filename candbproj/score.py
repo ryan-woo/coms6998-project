@@ -141,7 +141,7 @@ def score(model, feature_extractor, seed):
         for idx, voxel_id in enumerate(sorted(voxel_idxs.keys())):
             by_subject[subjects[voxel_id]].append(experiment_average[layer_num, idx])
         scores.append(np.median([np.median(subject_rs) for subject_rs in by_subject.values()]))
-    return scores
+    return fold_average, scores
 
 def normalize_scores(scores):
     pereira = benchmark_pool["Pereira2018-encoding"]
