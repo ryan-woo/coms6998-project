@@ -90,7 +90,7 @@ def main():
 
     args = util.parse_args()
 
-    gpt2_model_result_path = Path(__file__).parent.resolve() / f"../results/gpt2_random_init_result.pkl"
+    gpt2_model_result_path = Path(__file__).parent.resolve() / f"../../results/gpt2_random_init_result.pkl"
 
     if gpt2_model_result_path.exists():
         with open(gpt2_model_result_path, "rb") as f:

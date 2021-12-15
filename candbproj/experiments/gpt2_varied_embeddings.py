@@ -19,19 +19,18 @@ def main():
 
     args = util.parse_args()
 
-    gpt2_heads_result_path = Path(__file__).parent.resolve() / f"../results/gpt2_varied_attn_heads_result.pkl"
-
-    if gpt2_heads_result_path.exists():
-        with open(gpt2_heads_result_path, "rb") as f:
+    gpt2_embedding_result_path = Path(__file__).parent.resolve() / f"../../results/gpt2_varied_embeddings_result.pkl"
+    if gpt2_embedding_result_path.exists():
+        with open(gpt2_embedding_result_path, "rb") as f:
             result_set = pickle.load(f)
     else:
         results = []
-        for heads in [1, 2, 4, 8, 12, 16, 32]:
+        for embeddings in [10, 20, 30, 50, 100, 768, 1000]:
             for seed in range(0, 10000, int(10000/args.n)):
                 util.seeder(seed)
 
                 model_config = GPT2Config.from_pretrained("gpt2")
-                model_config.n_head = heads
+                model_config.n_embed = embeddings
                 model_config.output_hidden_states = True
 
                 model = GPT2Model(model_config)
@@ -48,8 +47,8 @@ def main():
 
                 result = PereiraResult(
                     seed=seed,
-                    scores=scores,
                     raw_scores=raw_scores,
+                    scores=scores,
                     model_config=model_config,
                     tokenizer_args=tokenizer_args
                 )
@@ -57,7 +56,7 @@ def main():
 
         result_set = PereiraResultSet(results=results)
         try:
-            with open(gpt2_heads_result_path, "wb") as f:
+            with open(gpt2_embedding_result_path, "wb") as f:
                 pickle.dump(result_set, f)
         except OSError:
             log.warning("Warning: could not write result to file", exc_info=True)
@@ -67,7 +66,7 @@ def main():
         normalized_scores = normalize_scores(scores)
 
         print(f"Seed: {result.seed}",
-              f"heads: {result.model_config.n_head}",
+              f"embeddings: {result.model_config.n_embed}",
               f"Scores: {scores}",
               f"Normalized scores: {normalized_scores}"
               )

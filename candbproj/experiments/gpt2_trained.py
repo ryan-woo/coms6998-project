@@ -30,7 +30,7 @@ def main():
 
     args = parse_args()
 
-    gpt2_trained_result = Path(__file__).parent.resolve() / f"../results/gpt2_trained_result.pkl"
+    gpt2_trained_result = Path(__file__).parent.resolve() / f"../../results/gpt2_trained_result.pkl"
     if gpt2_trained_result.exists():
         with open(gpt2_trained_result, "rb") as f:
             result_set = pickle.load(f)
