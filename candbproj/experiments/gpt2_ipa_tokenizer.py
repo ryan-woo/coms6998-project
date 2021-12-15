@@ -148,7 +148,7 @@ def main():
             model_args = Args(
                 args = ("gpt2",),
                 kwargs = {
-                    "vocab_size": sys.maxunicode + 1,
+                    "vocab_size": model_config.vocab_size,
                     "output_hidden_states": True
                 }
             )
