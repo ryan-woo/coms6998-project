@@ -1,5 +1,6 @@
 import os
 import pickle
+from pathlib import Path
 from typing import Callable
 
 import torch
@@ -87,10 +88,10 @@ class PassageTokenizer(FeatureExtractor):
 
         return tokenized, output_coords
 
-PREPROCESSING_DIR = 'preprocessing'
+PREPROCESSING_DIR = Path(__file__).parent.resolve() / 'preprocessed'
 MP3_DIR = os.path.join(PREPROCESSING_DIR, 'mp3')
 
-NUM_MFCCS = 30
+NUM_MFCCS = 36
 class MFCCExtractor(FeatureExtractor):
     def __init__(self):
         self.mfcc_filepath = os.path.join(PREPROCESSING_DIR, 'mfccs.pkl')
@@ -116,6 +117,8 @@ class MFCCExtractor(FeatureExtractor):
 
         if os.path.exists(mp3_filepath):
             return mp3_filepath
+
+        print("generating mp3 for %s..." % sentence_id)
 
         client = texttospeech.TextToSpeechClient()
         input_text = texttospeech.SynthesisInput(text=sentence)
@@ -151,7 +154,7 @@ class MFCCSentenceExtractor(MFCCExtractor):
         stimuli = []
         largest_sequence = 0
         for stimulus_id, sentence in zip(stimulus_ids, sentences):
-            stimulus = get_mfcc(stimulus_id, sentence)
+            stimulus = self.get_mfcc(stimulus_id, sentence)
             largest_sequence = max(largest_sequence, stimulus.shape[0])
             stimuli.append(stimulus)
 
@@ -161,7 +164,7 @@ class MFCCSentenceExtractor(MFCCExtractor):
                 for stimulus in stimuli
             ]),
             'attention_mask': torch.stack([
-                pad(np.ones(stimulus.shape[0]), ((0, largest_sequence - stimulus.shape[0])))
+                pad(torch.ones(stimulus.shape[0]), ((0, largest_sequence - stimulus.shape[0])))
                 for stimulus in stimuli
             ])
         }
@@ -181,14 +184,14 @@ class MFCCPassageExtractor(MFCCExtractor):
         stimulus_ends = []
         last_stimulus_end = 0
         for stimulus_id, sentence in zip(stimulus_ids, sentences):
-            stimulus = get_mfcc(stimulus_id, sentence)
+            stimulus = self.get_mfcc(stimulus_id, sentence)
             last_stimulus_end += stimulus.shape[0]
             stimuli.append(stimulus)
             stimulus_ends.append(last_stimulus_end - 1)
 
         model_inputs = {
-            'inputs_embeds': torch.cat(stimuli),
-            'attention_mask': torch.ones(last_stimulus_end)
+            'inputs_embeds': torch.cat(stimuli).unsqueeze(dim=0),
+            'attention_mask': torch.ones((1, last_stimulus_end))
         }
 
         output_coords = [
