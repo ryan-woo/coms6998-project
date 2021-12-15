@@ -1,7 +1,9 @@
+import argparse
 import torch
-from tqdm import tqdm
-from transformers import PreTrainedTokenizerBase, GPT2Model
 import numpy as np
+from tqdm import tqdm
+
+from transformers import PreTrainedTokenizerBase, GPT2Model
 
 from neural_nlp.benchmarks import benchmark_pool
 from neural_nlp.stimuli import StimulusSet
@@ -9,6 +11,11 @@ from brainio_base.assemblies import NeuroidAssembly
 
 from candbproj import feature_extractors
 
+
+def seeder(seed):
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    
 
 def get_pereira():
     pereira = benchmark_pool["Pereira2018-encoding"]
@@ -88,3 +95,14 @@ def mean_across_experiments(experiment_voxel_ids, fold_average):
             shared_idx = voxel_idxs[voxel_id]
             experiment_average[:, shared_idx] += scalar * fold_average[experiment][:, experiment_idx]
     return experiment_average, voxel_idxs
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-n", type=int,
+        help="The number of times to run the result. Please use a number less than 10000",
+        default=10
+    )
+
+    return parser.parse_args()
