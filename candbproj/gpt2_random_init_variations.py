@@ -11,7 +11,7 @@ import scipy
 from candbproj import util
 from candbproj.score import score, normalize_scores
 from candbproj.feature_extractors import PassageTokenizer
-from candbproj.result import PereiraResult, Args
+from candbproj.result import PereiraResult, PereiraResultSet, Args
 
 
 
@@ -36,6 +36,8 @@ Definition of init_weights is found in the docs: https://huggingface.co/transfor
 Helpful:
 https://stackoverflow.com/questions/49433936/how-to-initialize-weights-in-pytorch/49433937#49433937
 """
+
+
 class XavierNormalInitGPT2Model(GPT2Model):
 
     def _init_weights(self, module):
@@ -51,6 +53,7 @@ class XavierNormalInitGPT2Model(GPT2Model):
         elif isinstance(module, nn.LayerNorm):
             module.bias.data.zero_()
             module.weight.data.fill_(1.0)
+
 
 class XavierUniformInitGPT2Model(GPT2Model):
 
@@ -68,6 +71,7 @@ class XavierUniformInitGPT2Model(GPT2Model):
             module.bias.data.zero_()
             module.weight.data.fill_(1.0)
 
+
 class HeInitGPT2Model(GPT2Model):
     def _init_weights(self, module):
         """ Initialize the weights.
@@ -81,27 +85,23 @@ class HeInitGPT2Model(GPT2Model):
             module.bias.data.zero_()
             module.weight.data.fill_(1.0)
 
-RESULTS_DIR = Path(__file__).parent.resolve() / "../results"
-
-def get_model_results_path(model_class, seed):
-    return RESULTS_DIR / f"{model_class.__name__}-{seed}.pkl"
 
 def main():
-    for seed in range(0, 1000, 100):
-        util.seeder(seed)
 
+    args = util.parse_args()
+
+    gpt2_model_result_path = Path(__file__).parent.resolve() / f"../results/gpt2_random_init_result.pkl"
+
+    if gpt2_model_result_path.exists():
+        with open(gpt2_model_result_path, "rb") as f:
+            result_set = pickle.load(f)
+
+    else:
         model_classes = (XavierUniformInitGPT2Model, XavierNormalInitGPT2Model, HeInitGPT2Model)
-        if all([(gpt2_result_path / f"{model_class.__name__}").exists() for model_class in model_classes]):
-            results = {}
-            for model_class in model_classes:
-                gpt2_model_result_path = get_model_results_path(model_class, seed)
-                with open(gpt2_model_result_path, "rb") as f:
-                    result = pickle.load(f)
-                    results[(model_class.__name__, seed)] = result
-        else:
-            results = {}
-            for model_class in model_classes:
-                gpt2_model_result_path = get_model_results_path(model_class, seed)
+        results = []
+        for model_class in model_classes:
+            for seed in range(0, 10000, int(10000/args.n)):
+                util.seeder(seed)
 
                 model_config = GPT2Config.from_pretrained("gpt2")
                 model_config.output_hidden_states = True
@@ -121,21 +121,29 @@ def main():
                     seed=seed,
                     scores=scores,
                     model_config=model_config,
-                    tokenizer_args=tokenizer_args
+                    tokenizer_args=tokenizer_args,
+                    metadata={"model_name": model_class.__name__}
                 )
 
-                results[(model_class.__name__, seed)] = result
-                try:
-                    with open(gpt2_model_result_path, "wb") as f:
-                        pickle.dump(result, f)
-                except OSError:
-                    log.warning("Warning: could not write result to file", exc_info=True)
+                results.append(result)
 
-        for (model_class, seed), result in results.items():
-            scores = result.scores
-            normalized_scores = normalize_scores(scores)
+        result_set = PereiraResultSet(results=results)
+        try:
+            with open(gpt2_model_result_path, "wb") as f:
+                pickle.dump(result_set, f)
+        except OSError:
+            log.warning("Warning: could not write result to file", exc_info=True)
 
-            print(f": {result.model_config.n_head}", scores, normalized_scores)
+    for result in result_set.results:
+        scores = result.scores
+        normalized_scores = normalize_scores(scores)
+        model_name = result.metadata.get("model_name", "Unknown model")
+
+        print(f"Seed: {result.seed}",
+              f"model name: {model_name}",
+              f"Scores: {scores}",
+              f"Normalized scores: {normalized_scores}"
+              )
 
 
 if __name__ == "__main__":
