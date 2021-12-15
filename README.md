@@ -9,7 +9,7 @@ cd coms6998-project
 pip install .
 ```
 
-You may optionally install into a virtual environment by cloning the repository, creating the virtual environment, 
+It is recommended to create and install into a virtual environment by cloning the repository, creating the virtual environment, 
 and then installing.
 ```
 cd coms6998-project
@@ -25,8 +25,8 @@ To run a scoring script, simply run
 cd candbproj
 python gpt2_trained.py
 ```
-
-In order to run the scoring function `n` times, each with a different random seed, do
+This will score the model 10 times, each with a different random seed. 
+To run a different number of times, each with a different random seed, do
 ```
 python gpt2_trained.py -n <n>
 ```
