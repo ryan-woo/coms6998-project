@@ -36,7 +36,8 @@ def get_stimulus_passages(data: NeuroidAssembly) -> StimulusSet:
 def extract_activations(
     stimulus_set: StimulusSet,
     model: GPT2Model,
-    feature_extractor: feature_extractors.FeatureExtractor
+    feature_extractor: feature_extractors.FeatureExtractor,
+    dropout_seed=None
 ):
     # from stimulus_id -> # layers x 768 tensor (final representations from each layer)
     activations = {}
@@ -55,6 +56,9 @@ def extract_activations(
                     stimulus_ids, sentences
                 )
 
+            if dropout_seed:
+                torch.manual_seed(dropout_seed)
+                
             output = model(**stimulus_input_features)
 
             for stimulus_id, (stimulus_row, stimulus_col) in zip(stimulus_ids, stimulus_output_coords):

@@ -115,12 +115,13 @@ def raw_score(experiments=None, experiment_stimuli=None, activations=None, folds
     return experiment_pearsonrs
 
 
-def score(model, feature_extractor, seed):
+def score(model, feature_extractor, seed, dropout_seed=None):
 
     pereira_data = util.get_pereira()
     stimulus_set = util.get_stimulus_passages(pereira_data)
 
-    activations = util.extract_activations(stimulus_set, model, feature_extractor)
+    activations = util.extract_activations(
+        stimulus_set, model, feature_extractor, dropout_seed=None)
 
     experiment_voxels, experiment_voxel_ids, experiment_voxel_nas, experiment_stimuli = \
         experiment_voxel_info(pereira_data)
