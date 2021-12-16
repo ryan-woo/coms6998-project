@@ -16,7 +16,6 @@ log = logging.getLogger()
 
 
 def main():
-
     args = util.parse_args()
 
     gpt2_embedding_result_path = Path(__file__).parent.resolve() / f"../../results/gpt2_mfcc_embeddings_result.pkl"
@@ -32,7 +31,7 @@ def main():
             assert model_config.vocab_size == 50257
             model_config.vocab_size = 0
             assert model_config.n_positions == 1024
-            model_config.n_positions = 2000
+            model_config.n_positions = 3000
             assert model_config.n_embd == 768
             model_config.n_embd = NUM_MFCCS
             model_config.output_hidden_states = True

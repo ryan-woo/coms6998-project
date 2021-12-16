@@ -41,7 +41,7 @@ def extract_activations(
 ):
     # from stimulus_id -> # layers x 768 tensor (final representations from each layer)
     activations = {}
-    for story in tqdm(sorted(set(stimulus_set['passage_id'].values))):
+    for story in tqdm(sorted(set(stimulus_set['passage_id'].values)), desc='extracting story activations'):
         story_stimuli = stimulus_set[stimulus_set['passage_id'] == story]
 
         sentences = []
@@ -58,7 +58,7 @@ def extract_activations(
 
             if dropout_seed:
                 torch.manual_seed(dropout_seed)
-                
+
             output = model(**stimulus_input_features)
 
             for stimulus_id, (stimulus_row, stimulus_col) in zip(stimulus_ids, stimulus_output_coords):

@@ -1,5 +1,6 @@
 import os
 import pickle
+import warnings
 from pathlib import Path
 from typing import Callable
 
@@ -10,10 +11,7 @@ from surfboard.sound import Waveform
 from google.cloud import texttospeech
 
 # TODO:
-#   - part of speech tokenizer
 #   - parse tree informed embedding (via attention mask)
-#   - dropout
-#   - sound based character tokenization (PIE vocab)
 #   - vocabularies of different sizes (no language bias)
 #       - 26 + 26^2 + 26^3 + 26^4
 
@@ -150,8 +148,10 @@ class MFCCExtractor(FeatureExtractor):
         return mp3_filepath
 
     def generate_mfccs(self, mp3_filepath):
-        sound = Waveform(mp3_filepath)
-        return torch.tensor(sound.mfcc(n_mfcc=NUM_MFCCS)).transpose(1, 0)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="PySoundFile failed. Trying audioread instead.")
+            sound = Waveform(str(mp3_filepath), sample_rate=24_000)
+            return torch.tensor(sound.mfcc(n_mfcc=NUM_MFCCS)).transpose(1, 0)
 
 
 class MFCCSentenceExtractor(MFCCExtractor):
