@@ -31,6 +31,13 @@ TOKENS = {
         'WDT', 'WP', 'WP$', 'WRB', 'XX', '``'
     ]
 }
+NER = [
+    'CARDINAL', 'DATE', 'EVENT', 'FAC', 'GPE', 'LANGUAGE', 'LAW', 
+    'LOC', 'MONEY', 'NORP', 'ORDINAL', 'ORG', 'PERCENT', 'PERSON', 
+    'PRODUCT', 'QUANTITY', 'TIME', 'WORK_OF_ART'
+]
+TOKENS['coarse_pos_ner'] = TOKENS['coarse'] + NER
+TOKENS['fine_pos_ner'] = TOKENS['fine'] + NER
 
 EN = lazy(lambda: spacy.load('en_core_web_trf'))
 PREPROCESSING_DIR = Path(__file__).parent.resolve() / '../preprocessed'
@@ -48,42 +55,57 @@ def parse_args():
 
     return parser.parse_args()
 
+def get_parse(sentence_id):
+    global PARSES
+
+    if PARSES is None:
+        if os.path.exists(PARSE_CACHE_FILE):
+            with open(PARSE_CACHE_FILE, 'rb') as f:
+                PARSES = pickle.load(f)
+        else:
+            PARSES = {}
+
+    if sentence_id not in PARSES:
+        PARSES[sentence_id] = EN(sentence)
+        with open(PARSE_CACHE_FILE, 'wb') as f:
+            pickle.dump(PARSES, f)
+
+    return PARSES[sentence_id]
 
 def get_coarse_pos_tags(sentence_id, sentence):
-    global PARSES
-
-    if PARSES is None:
-        if os.path.exists(PARSE_CACHE_FILE):
-            with open(PARSE_CACHE_FILE, 'rb') as f:
-                PARSES = pickle.load(f)
-        else:
-            PARSES = {}
-
-    if sentence_id not in PARSES:
-        PARSES[sentence_id] = EN(sentence)
-        with open(PARSE_CACHE_FILE, 'wb') as f:
-            pickle.dump(PARSES, f)
-
-    return ' '.join([token.pos_ for token in PARSES[sentence_id]])
-
+    return ' '.join([token.pos_ for token in get_parse(sentence_id)])
 
 def get_fine_pos_tags(sentence_id, sentence):
-    global PARSES
+    return ' '.join([token.tag_ for token in get_parse(sentence_id)])
 
-    if PARSES is None:
-        if os.path.exists(PARSE_CACHE_FILE):
-            with open(PARSE_CACHE_FILE, 'rb') as f:
-                PARSES = pickle.load(f)
+def get_coarse_pos_ner_tags(sentence_id, sentence):
+    tags = []
+    for token in get_parse(sentence_id):
+        if token.ent_iob_ == 'B':
+            tags.append(token.ent_type_)
+        elif token.ent_iob_ == 'O':
+            tags.append(token.pos_)
         else:
-            PARSES = {}
+            assert token.ent_iob_ == 'I'
+    return ' '.join(tags)
 
-    if sentence_id not in PARSES:
-        PARSES[sentence_id] = EN(sentence)
-        with open(PARSE_CACHE_FILE, 'wb') as f:
-            pickle.dump(PARSES, f)
+def get_fine_pos_ner_tags(sentence_id, sentence):
+    tags = []
+    for token in get_parse(sentence_id):
+        if token.ent_iob_ == 'B':
+            tags.append(token.ent_type_)
+        elif token.ent_iob_ == 'O':
+            tags.append(token.tag_)
+        else:
+            assert token.ent_iob_ == 'I'
+    return ' '.join(tags)
 
-    return ' '.join([token.tag_ for token in PARSES[sentence_id]])
-
+PREPROCESSORS = {
+    'coarse': get_coarse_pos_tags,
+    'fine': get_fine_pos_tags,
+    'coarse_pos_ner': get_coarse_pos_ner_tags,
+    'fine_pos_ner': get_fine_pos_ner_tags,
+}
 
 def main():
     args = parse_args()
