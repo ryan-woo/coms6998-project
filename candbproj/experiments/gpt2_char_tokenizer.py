@@ -8,7 +8,7 @@ from tokenizers.models import WordLevel
 import scipy
 
 from tokenizers import Tokenizer
-from transformers import GPT2Model, GPT2Tokenizer
+from transformers import GPT2Model, GPT2Tokenizer, GPT2Config
 from candbproj import util
 from candbproj.score import score, normalize_scores
 from candbproj.feature_extractors import PassageTokenizer
@@ -83,11 +83,10 @@ def main():
         for seed in range(0, 10000, int(10000/args.n)):
             util.seeder(seed)
 
-            model_args = Args(
-                args = ("gpt2",),
-                kwargs = {"output_hidden_states": True}
-            )
-            model = GPT2Model.from_pretrained(*model_args.args, **model_args.kwargs)
+            model_config = GPT2Config.from_pretrained("gpt2")
+            model_config.output_hidden_states = True
+
+            model = GPT2Model(model_config)
             model = model.eval()
             tokenizer_args = Args(
                 args=(str(chartok_dir),)
@@ -108,7 +107,7 @@ def main():
                 seed=seed,
                 scores=scores,
                 raw_scores=raw_scores,
-                model_args=model_args,
+                model_config=model_config,
                 tokenizer_args=tokenizer_args
             )
             results.append(result)

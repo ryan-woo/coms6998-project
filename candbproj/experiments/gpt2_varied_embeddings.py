@@ -25,12 +25,12 @@ def main():
             result_set = pickle.load(f)
     else:
         results = []
-        for embeddings in [10, 20, 30, 50, 100, 768, 1000]:
+        for embeddings in [12, 24, 36, 60, 120, 768, 1200]:
             for seed in range(0, 10000, int(10000/args.n)):
                 util.seeder(seed)
 
                 model_config = GPT2Config.from_pretrained("gpt2")
-                model_config.n_embed = embeddings
+                model_config.n_embd = embeddings
                 model_config.output_hidden_states = True
 
                 model = GPT2Model(model_config)
@@ -66,7 +66,7 @@ def main():
         normalized_scores = normalize_scores(scores)
 
         print(f"Seed: {result.seed}",
-              f"embeddings: {result.model_config.n_embed}",
+              f"embeddings: {result.model_config.n_embd}",
               f"Scores: {scores}",
               f"Normalized scores: {normalized_scores}"
               )
