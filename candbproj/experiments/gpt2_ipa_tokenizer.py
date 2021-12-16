@@ -1,14 +1,16 @@
-import logging
-from pathlib import Path
+import os 
+import re 
 import pickle
+import logging
 import warnings
-import re
+from pathlib import Path
 
 import scipy
 import epitran
-from tokenizers.models import WordLevel
+from lazy_load import lazy
 
-from tokenizers import Tokenizer
+import torch
+from torch.nn.utils.rnn import pad_sequence
 from transformers import GPT2Config, GPT2Model, GPT2Tokenizer
 
 from candbproj import util
@@ -23,7 +25,6 @@ log = logging.getLogger()
 # IPA characters which appear in Pereira et al.
 
 IPA_VOCAB = {
-    "~": 0,
     "$": 1,
     "%": 2,
     ",": 3,
@@ -73,63 +74,62 @@ IPA_VOCAB = {
     "\u0329": 47,
     "\u0361": 48,
     "\u03b8": 49,
-    "<unk>": 50
+    "~": 50
 }
 
-def create_ipa_char_tokenizer():
-    """
-    Create a custom WordLevel tokenizer with a vocabulary of
-    every character used in Unicode minus whitespace.
+class IpaTokenizerResult(dict):
+    def __init__(self, *args, **kwargs):
+        self.update(*args, **kwargs)
 
-    The tokenizer will fail to tokenize whitespace.
-    As such it is required to pre-process input strings by replacing
-    whitespace with the special character ~.
-    :return: Tokenizer
-    """
+    def char_to_token(self, index):
+        return index
 
-    unicode_chars = IPA_VOCAB
-    vocab = {
-        "<unk>": len(unicode_chars)  # unknown token
-    }
-    vocab.update(unicode_chars)
-    tokenizer = Tokenizer(WordLevel(
-        vocab=vocab,
-        unk_token="<unk>",
-    ))
-    return tokenizer
+class IpaTokenizer:
+    def __call__(self, sentences, add_special_tokens, return_tensors):
+        assert add_special_tokens
+        assert return_tensors == 'pt'
 
+        input_ids = []
+        attention_masks = []
+        for sentence in sentences:
+            input_ids.append([])
+            for char in sentence:
+                input_ids[-1].append(IPA_VOCAB[char])
 
-class IpaCharTokenizerWrapper:
-    """Required to be able to use a custom defined char_to_token() function
-    """
-    def __init__(self, tokenizer):
-        self.tokenizer = tokenizer
+            input_ids[-1] = torch.tensor(input_ids[-1])
+            attention_masks.append(torch.ones(input_ids[-1].shape[0]))
 
-    def __call__(self, *args, **kwargs):
-        result = self.tokenizer(*args, **kwargs)
-
-        def char_to_token(index):
-            return index
-
-        result.char_to_token = char_to_token
+        result = IpaTokenizerResult()
+        result['input_ids'] = pad_sequence(
+            input_ids, batch_first=True, padding_value=0)
+        result['attention_mask'] = pad_sequence(
+            attention_masks, batch_first=True, padding_value=0)
         return result
 
+EPI = lazy(lambda: epitran.Epitran('eng-Latn'))
+PREPROCESSING_DIR = Path(__file__).parent.resolve() / '../preprocessed'
+TRANSLITERTIONS_CACHE_FILE = os.path.join(PREPROCESSING_DIR, 'ipa.pkl')
+TRANSLITERATIONS = None
+
+def ipa_preprocessor(sentence_id, sentence):
+    global TRANSLITERATIONS
+
+    if TRANSLITERATIONS is None:
+        if os.path.exists(TRANSLITERTIONS_CACHE_FILE):
+            with open(TRANSLITERTIONS_CACHE_FILE, 'rb') as f:
+                TRANSLITERATIONS = pickle.load(f)
+        else:
+            TRANSLITERATIONS = {}
+
+    if sentence_id not in TRANSLITERATIONS:
+        TRANSLITERATIONS[sentence_id] = EPI.transliterate(sentence)
+        with open(TRANSLITERTIONS_CACHE_FILE, 'wb') as f:
+            pickle.dump(TRANSLITERATIONS, f)
+
+    return re.sub("\s", "~", TRANSLITERATIONS[sentence_id])
 
 def main():
-
     args = util.parse_args()
-
-    ipa_chartok_dir = Path(__file__).parent.resolve() / "../../custom_tokenizers/ipa"
-    if not ipa_chartok_dir.is_dir():
-        # We must create the tokenizer from scratch
-        ipa_chartok_dir.mkdir()
-        tokenizer = create_ipa_char_tokenizer()
-        tokenizer.model.save(str(ipa_chartok_dir))
-        # Because the tokenizer is WordLevel, it does not create a merges.txt normally.
-        # We create an empty merges.txt, which forces GPT2Tokenizers to effectively
-        # use the tokenizer as a character-level tokenizer.
-        open(ipa_chartok_dir / "merges.txt", "w").close()
-
 
     gpt2_ipa_char_tokenizer_result = Path(__file__).parent.resolve() / "../../results/gpt2_ipa_char_tokenizer_result.pkl"
     if gpt2_ipa_char_tokenizer_result.exists():
@@ -155,16 +155,10 @@ def main():
             model = GPT2Model(model_config)
             model = model.eval()
 
-            tokenizer_args = Args(
-                args=(str(ipa_chartok_dir),)
-            )
-            tokenizer = GPT2Tokenizer.from_pretrained(*tokenizer_args.args)
-            tokenizer = IpaCharTokenizerWrapper(tokenizer)
+            tokenizer_args = Args()
             epi = epitran.Epitran('eng-Latn')
             feature_extractor = PassageTokenizer(
-                tokenizer,
-                sentence_delimiter="~",
-                sentence_preprocessor=lambda sentence_id_and_sentence: re.sub("\s", "~", epi.transliterate(sentence_id_and_sentence[1]))
+                IpaTokenizer(), sentence_delimiter="~", sentence_preprocessor=ipa_preprocessor
             )
 
             with warnings.catch_warnings():
