@@ -1,3 +1,4 @@
+import warnings
 from collections import defaultdict
 
 from neural_nlp.benchmarks import benchmark_pool
@@ -20,7 +21,7 @@ def experiment_voxel_info(data: NeuroidAssembly):
             range(data.shape[0]),
             data['stimulus_id'].values,
             data['experiment'].values
-    )):
+    ), desc="preprocessing Pereira"):
         voxels = []
         for voxel_id, atlas in zip(range(data.shape[1]), data['atlas'].values):
             if atlas == 'language':
@@ -116,9 +117,10 @@ def raw_score(experiments=None, experiment_stimuli=None, activations=None, folds
 
 
 def score(model, feature_extractor, seed, dropout_seed=None):
-
-    pereira_data = util.get_pereira()
-    stimulus_set = util.get_stimulus_passages(pereira_data)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message="xarray subclass", category=FutureWarning)
+        pereira_data = util.get_pereira()
+        stimulus_set = util.get_stimulus_passages(pereira_data)
 
     activations = util.extract_activations(
         stimulus_set, model, feature_extractor, dropout_seed=None)
