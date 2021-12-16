@@ -88,6 +88,7 @@ class PassageTokenizer(FeatureExtractor):
 
         return tokenized, output_coords
 
+
 PREPROCESSING_DIR = Path(__file__).parent.resolve() / 'preprocessed'
 MP3_DIR = os.path.join(PREPROCESSING_DIR, 'mp3')
 

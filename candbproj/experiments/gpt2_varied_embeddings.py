@@ -19,7 +19,7 @@ def main():
 
     args = util.parse_args()
 
-    gpt2_embedding_result_path = Path(__file__).parent.resolve() / f"../results/gpt2_varied_embeddings_result.pkl"
+    gpt2_embedding_result_path = Path(__file__).parent.resolve() / f"../../results/gpt2_varied_embeddings_result.pkl"
     if gpt2_embedding_result_path.exists():
         with open(gpt2_embedding_result_path, "rb") as f:
             result_set = pickle.load(f)

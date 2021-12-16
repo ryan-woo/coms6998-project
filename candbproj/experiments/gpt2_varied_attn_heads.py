@@ -19,7 +19,7 @@ def main():
 
     args = util.parse_args()
 
-    gpt2_heads_result_path = Path(__file__).parent.resolve() / f"../results/gpt2_varied_attn_heads_result.pkl"
+    gpt2_heads_result_path = Path(__file__).parent.resolve() / f"../../results/gpt2_varied_attn_heads_result.pkl"
 
     if gpt2_heads_result_path.exists():
         with open(gpt2_heads_result_path, "rb") as f:
