@@ -136,13 +136,8 @@ def main():
                 tokenizer.add_tokens(TOKENS[granularity])
                 model.resize_token_embeddings(len(tokenizer))
 
-                if granularity == 'coarse':
-                    preprocessor = get_coarse_pos_tags
-                else:
-                    assert granularity == 'fine'
-                    preprocessor = get_fine_pos_tags
-
-                feature_extractor = PassageTokenizer(tokenizer, sentence_preprocessor=preprocessor)
+                feature_extractor = PassageTokenizer(
+                    tokenizer, sentence_preprocessor=PREPROCESSORS[granularity])
 
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore", scipy.stats.PearsonRConstantInputWarning)  # Ignore the very many PearsonRCoefficient warnings
