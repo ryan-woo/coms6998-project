@@ -164,7 +164,7 @@ def main():
             feature_extractor = PassageTokenizer(
                 tokenizer,
                 sentence_delimiter="~",
-                sentence_preprocessor=lambda x: re.sub("\s", "~", epi.transliterate(x))
+                sentence_preprocessor=lambda sentence_id_and_sentence: re.sub("\s", "~", epi.transliterate(sentence_id_and_sentence[1]))
             )
 
             with warnings.catch_warnings():
