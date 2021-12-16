@@ -10,6 +10,9 @@ from surfboard.sound import Waveform
 from google.cloud import texttospeech
 
 # TODO:
+#   - part of speech tokenizer
+#   - parse tree informed embedding (via attention mask)
+#   - dropout
 #   - sound based character tokenization (PIE vocab)
 #   - vocabularies of different sizes (no language bias)
 #       - 26 + 26^2 + 26^3 + 26^4
@@ -63,7 +66,10 @@ class PassageTokenizer(FeatureExtractor):
         assert len(stimulus_ids) == len(sentences)
 
         if self.sentence_preprocessor is not None:
-            sentences = [self.sentence_preprocessor(sentence) for sentence in sentences]
+            sentences = [
+                self.sentence_preprocessor(stimulus_id, sentence) 
+                for stimulus_id, sentence in zip(stimulus_ids, sentences)
+            ]
 
         stimulus_ends = []
         length_so_far = 0
