@@ -31,17 +31,14 @@ def group_results(result_set: PereiraResultSet, group_mapping: Callable):
     return grouped_results
 
 
-def details_across_results(grouped_results):
+def details_across_results(normalized_results):
     """
     Return the mean, variance across grouped_results. Returns a dictionary with the same keys
     as grouped_results, but with tuples of the (mean, variance) of the scores of each key.
     """
 
     details = {}
-    for key, result_set in grouped_results.items():
-        scores = []
-        for result in result_set.results:
-            scores.append(result.scores)
+    for key, scores in normalized_results.items():
         results_mean = np.mean(scores, axis=0)
         results_var = np.var(scores, axis=0)
 
@@ -49,24 +46,24 @@ def details_across_results(grouped_results):
     return details
 
 
-def normalize_across_grouped_results(details):
+def normalize_across_grouped_results(grouped_result):
 
     normalized = {}
-    for key, stats in details.items():
-        mean, var = stats
-        normalized_mean = normalize_scores(mean)
-        normalized_var = normalize_scores(var)
-
-        normalized[key] = (normalized_mean, normalized_var)
+    for key, result_set in grouped_result.items():
+        scores = []
+        for result in result_set.results:
+            scores.append(result.scores)
+        scores = normalize_scores(scores)
+        normalized[key] = scores
     return normalized
 
 
-def extract_process_normalize(result_set, group_mapping):
+def extract_normalize_process(result_set, group_mapping):
     grouped_result = group_results(result_set, group_mapping)
-    details = details_across_results(grouped_result)
-    normalized = normalize_across_grouped_results(details)
+    normalized = normalize_across_grouped_results(grouped_result)
+    details = details_across_results(normalized)
 
-    return normalized
+    return details
 
 
 def df_by_key(grouped_results, key_name: str):
@@ -95,10 +92,10 @@ def dfs_by_layer(grouped_results):
     return dfs
 
 
-def key_fill_axis(axis, df, label=None):
-    axis.set_title("Normalized scores by number of heads")
+def key_fill_axis(axis, df, key_name, label=None):
+    axis.set_title("Normalized scores by number of embeddings")
     axis.errorbar(
-        df["n_head"],
+        df[key_name],
         df["normalized_score"],
         yerr=df["variance"],
         fmt=".k",
@@ -128,12 +125,4 @@ def layer_fill_axis(axis, dfs, labels):
 
 def generate_color():
     for r in mcolors.BASE_COLORS:
-
         yield r
-# Don't think this will necessarily be valuable
-# def scatterplot(x, y, title="Normalized scores"):
-#     figure, axis = plt.subplots(1, 1, figsize=(8, 6))
-#     axis.set_title("Normalized scores by number of heads")
-#     sns.scatterplot(x=df["n_head"], y=df["normalized_score"], ax=axis)
-#
-#
