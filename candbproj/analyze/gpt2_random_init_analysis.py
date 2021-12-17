@@ -5,27 +5,12 @@ import re
 
 from candbproj.result import PereiraResultSet, PereiraResult
 from candbproj.analyze.analysis import extract_normalize_process, \
-    df_by_key, dfs_by_layer, layer_fill_axis, key_fill_axis
+    df_by_key, dfs_by_layer, layer_fill_axis, key_fill_axis, \
+    embedding_group_mapper, get_random_init_data
 
 
 def group_mapper(result: PereiraResult) -> str:
     return re.sub("GPT2Model", "", result.metadata["model_name"])
-
-
-def embedding_group_mapper(result: PereiraResult) -> int:
-    return result.model_config.n_embd
-
-
-def get_default_init_data():
-
-    gpt2_embedding_result_path = "../../results/gpt2_varied_embeddings_result.pkl"
-    with open(gpt2_embedding_result_path, "rb") as f:
-        result_set: PereiraResultSet = pickle.load(f)
-
-    normalized_embedding_scores = extract_normalize_process(result_set, group_mapping=embedding_group_mapper)
-
-    default_initialization_result = normalized_embedding_scores[768]  # Get the default size
-    return default_initialization_result
 
 
 def main():
@@ -36,7 +21,7 @@ def main():
     normalized_random_init_scores = extract_normalize_process(
         result_set, group_mapping=group_mapper)
 
-    normalized_random_init_scores["DefaultInit"] = get_default_init_data()
+    normalized_random_init_scores["DefaultInit"] = get_random_init_data()
     figure, axis = plt.subplots(1, 2, figsize=(12, 6))
     dfs = dfs_by_layer(normalized_random_init_scores)
     labels = [key for key in normalized_random_init_scores.keys()]

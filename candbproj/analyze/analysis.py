@@ -3,11 +3,9 @@ from typing import Callable
 
 import numpy as np
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 
-from candbproj.result import PereiraResultSet
+from candbproj.result import PereiraResultSet, PereiraResult
 from candbproj.score import normalize_scores
 
 
@@ -121,6 +119,22 @@ def layer_fill_axis(axis, dfs, labels):
                          label=label
                          )
     axis.legend()
+
+
+def embedding_group_mapper(result: PereiraResult):
+    return result.model_config.n_embd
+
+
+def get_random_init_data():
+
+    gpt2_embedding_result_path = "../../results/gpt2_varied_embeddings_result.pkl"
+    with open(gpt2_embedding_result_path, "rb") as f:
+        result_set: PereiraResultSet = pickle.load(f)
+
+    normalized_embedding_scores = extract_normalize_process(result_set, group_mapping=embedding_group_mapper)
+
+    default_initialization_result = normalized_embedding_scores[768]  # Get the default size
+    return default_initialization_result
 
 
 def generate_color():
