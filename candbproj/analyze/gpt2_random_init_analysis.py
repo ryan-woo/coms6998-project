@@ -6,7 +6,7 @@ import re
 from candbproj.result import PereiraResultSet, PereiraResult
 from candbproj.analyze.analysis import extract_normalize_process, \
     df_by_key, dfs_by_layer, layer_fill_axis, key_fill_axis, \
-    embedding_group_mapper, get_random_init_data
+    get_untrained_data
 
 
 def group_mapper(result: PereiraResult) -> str:
@@ -21,7 +21,7 @@ def main():
     normalized_random_init_scores = extract_normalize_process(
         result_set, group_mapping=group_mapper)
 
-    normalized_random_init_scores["DefaultInit"] = get_random_init_data()
+    normalized_random_init_scores["DefaultInit"] = get_untrained_data()
     figure, axis = plt.subplots(1, 2, figsize=(12, 6))
     dfs = dfs_by_layer(normalized_random_init_scores)
     labels = [key for key in normalized_random_init_scores.keys()]

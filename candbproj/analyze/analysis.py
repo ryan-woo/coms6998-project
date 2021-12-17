@@ -125,7 +125,7 @@ def embedding_group_mapper(result: PereiraResult):
     return result.model_config.n_embd
 
 
-def get_random_init_data():
+def get_untrained_data():
 
     gpt2_embedding_result_path = "../../results/gpt2_varied_embeddings_result.pkl"
     with open(gpt2_embedding_result_path, "rb") as f:
