@@ -93,7 +93,7 @@ def dfs_by_layer(grouped_results):
 
 
 def key_fill_axis(axis, df, key_name, label=None):
-    axis.set_title("Normalized scores by number of embeddings")
+    axis.set_title(f"Normalized scores by {key_name}")
     axis.errorbar(
         df[key_name],
         df["normalized_score"],
