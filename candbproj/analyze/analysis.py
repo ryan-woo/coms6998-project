@@ -101,7 +101,7 @@ def key_fill_axis(axis, df, key_name, label=None):
         fmt=".k",
         label=label
     )
-    axis.set_xlabel("Heads")
+    axis.set_xlabel(key_name)
     axis.set_ylabel("Score")
     if label is not None:
         axis.legend()
