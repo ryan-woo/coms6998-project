@@ -1,7 +1,6 @@
 import pickle
 
 import matplotlib.pyplot as plt
-import re
 
 from candbproj.result import PereiraResultSet, PereiraResult
 from candbproj.analyze.analysis import extract_normalize_process, \
