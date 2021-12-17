@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 
 from candbproj.result import PereiraResultSet
 from candbproj.score import normalize_scores
@@ -68,7 +69,7 @@ def extract_process_normalize(result_set, group_mapping):
     return normalized
 
 
-def convert_to_df(grouped_results, key_name: str):
+def df_by_key(grouped_results, key_name: str):
     df = pd.DataFrame.from_dict(
         grouped_results,
         orient="index",
@@ -79,7 +80,56 @@ def convert_to_df(grouped_results, key_name: str):
     return df
 
 
+def dfs_by_layer(grouped_results):
 
+    dfs = []
+    for value in grouped_results.values():
+        d = {
+            "normalized_score": value[0],
+            "variance": value[1],
+        }
+        df = pd.DataFrame(d)
+        df = df.reset_index()
+        df = df.rename({"index": "layer"}, axis="columns")
+        dfs.append(df)
+    return dfs
+
+
+def key_fill_axis(axis, df, label=None):
+    axis.set_title("Normalized scores by number of heads")
+    axis.errorbar(
+        df["n_head"],
+        df["normalized_score"],
+        yerr=df["variance"],
+        fmt=".k",
+        label=label
+    )
+    axis.set_xlabel("Heads")
+    axis.set_ylabel("Score")
+    if label is not None:
+        axis.legend()
+
+
+def layer_fill_axis(axis, dfs, labels):
+    color_generator = generate_color()
+    axis.set_title("Normalized scores by layer")
+    axis.set_xlabel("Layer")
+    axis.set_ylabel("Score")
+    for df, label in zip(dfs, labels):
+        axis.errorbar(df["layer"],
+                         df["normalized_score"],
+                         yerr=df["variance"],
+                         fmt=".",
+                         c=next(color_generator),
+                         label=label
+                         )
+    axis.legend()
+
+
+def generate_color():
+    for r in mcolors.BASE_COLORS:
+
+        yield r
 # Don't think this will necessarily be valuable
 # def scatterplot(x, y, title="Normalized scores"):
 #     figure, axis = plt.subplots(1, 1, figsize=(8, 6))
