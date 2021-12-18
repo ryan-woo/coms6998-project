@@ -140,5 +140,9 @@ def get_untrained_data():
 
 
 def generate_color():
-    for r in mcolors.BASE_COLORS:
+
+    colors = {**mcolors.BASE_COLORS, **mcolors.TABLEAU_COLORS}
+    colors.pop("w")
+
+    for r in colors:
         yield r

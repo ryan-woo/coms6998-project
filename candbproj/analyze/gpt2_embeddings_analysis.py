@@ -20,9 +20,11 @@ def main():
         result_set, group_mapping=group_mapper)
 
     figure, axis = plt.subplots(1, 2, figsize=(12, 6))
+    figure.subplots_adjust(bottom=0.4)
     dfs = dfs_by_layer(normalized_embeddings_scores)
     labels = [f"{key} embeddings" for key in normalized_embeddings_scores.keys()]
     layer_fill_axis(axis[0], dfs, labels)
+    axis[0].legend(loc="lower center", bbox_to_anchor=(0.5, -0.75))
 
     # In this case we only care about the last layer's scores
     final_results = {}
