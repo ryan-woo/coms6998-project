@@ -27,7 +27,12 @@ VARIANTS = [
     ("disable_layer_norm", {"disable_layer_norm": True}),
     ("n_inner_up", {"n_inner": 8 * 768}),   # defaults to 4 * 768
     ("n_inner_same", {"n_inner": 768}),     # defaults to 4 * 768
-    ("n_inner_down", {"n_inner": 385})      # defaults to 4 * 768
+    ("n_inner_down", {"n_inner": 385}),      # defaults to 4 * 768
+    ("no_mha_res_conns", {"disable_mha_res_conns": True}),
+    ("no_mlp_res_conns", {"disable_mlp_res_conns": True}),
+    ("disable_mha_layer_norm", {"disable_mha_layer_norm": True}),
+    ("disable_mlp_layer_norm", {"disable_mlp_layer_norm": True}),
+    ("disable_final_layer_norm", {"disable_final_layer_norm": True})
 ]
 
 def main():
