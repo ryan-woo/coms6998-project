@@ -4,6 +4,7 @@ from typing import Callable
 import numpy as np
 import pandas as pd
 import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
 
 from candbproj.result import PereiraResultSet, PereiraResult
 from candbproj.score import normalize_scores
@@ -101,6 +102,7 @@ def key_fill_axis(axis, df, key_name, label=None):
     )
     axis.set_xlabel(key_name)
     axis.set_ylabel("Score")
+    plt.setp(axis.get_xticklabels(), rotation=30, horizontalalignment='right')
     if label is not None:
         axis.legend()
 
