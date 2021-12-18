@@ -154,13 +154,18 @@ class ModifiedGPT2Config(PretrainedConfig):
         scale_attn_by_inverse_layer_idx=False,
         reorder_and_upcast_attn=False,
         disable_pos_embeds=False,
-        disable_res_conns=False,
+        disable_res_conns=False, 
+        disable_mha_res_conns=False,
+        disable_mlp_res_conns=False,
         disable_mlp=False,
         disable_query_proj=False,
         disable_key_proj=False,
         disable_value_proj=False,
         disable_attn_proj=False,
         disable_layer_norm=False,
+        disable_mha_layer_norm=False,
+        disable_mlp_layer_norm=False,
+        disable_final_layer_norm=False,
         **kwargs,
     ):
         self.vocab_size = vocab_size
@@ -187,12 +192,17 @@ class ModifiedGPT2Config(PretrainedConfig):
         self.reorder_and_upcast_attn = reorder_and_upcast_attn
         self.disable_pos_embeds = disable_pos_embeds
         self.disable_res_conns = disable_res_conns
+        self.disable_mha_res_conns = disable_mha_res_conns
+        self.disable_mlp_res_conns = disable_mlp_res_conns
         self.disable_mlp = disable_mlp
         self.disable_query_proj=  disable_query_proj
         self.disable_key_proj = disable_key_proj
         self.disable_value_proj = disable_value_proj
         self.disable_attn_proj = disable_attn_proj
         self.disable_layer_norm = disable_layer_norm
+        self.disable_mha_layer_norm = disable_mha_layer_norm
+        self.disable_mlp_layer_norm = disable_mlp_layer_norm
+        self.disable_final_layer_norm = disable_final_layer_norm
 
         self.bos_token_id = bos_token_id
         self.eos_token_id = eos_token_id

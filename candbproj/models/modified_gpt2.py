@@ -258,7 +258,7 @@ class GPT2Block(nn.Module):
         output_attentions=False,
     ):
         residual = hidden_states
-        if not self.config.disable_layer_norm:
+        if not (self.config.disable_layer_norm or self.config.disable_mha_layer_norm):
             hidden_states = self.ln_1(hidden_states)
         attn_outputs = self.attn(
             hidden_states,
@@ -271,20 +271,20 @@ class GPT2Block(nn.Module):
         attn_output = attn_outputs[0]  # output_attn: a, present, (attentions)
         outputs = attn_outputs[1:]
         # residual connection
-        if not self.config.disable_res_conns:
+        if not (self.config.disable_res_conns or self.config.disable_mha_res_conns):
             hidden_states = attn_output + residual
 
         if encoder_hidden_states is not None:
             raise Exception("Shouldn't be here!")
 
         residual = hidden_states
-        if not self.config.disable_layer_norm:
+        if not (self.config.disable_layer_norm or self.config.disable_mlp_layer_norm):
             hidden_states = self.ln_2(hidden_states)
 
         if not self.config.disable_mlp:
             hidden_states = self.mlp(hidden_states)
 
-        if not self.config.disable_res_conns:
+        if not (self.config.disable_res_conns or self.config.disable_mlp_res_conns):
             # residual connection
             hidden_states = residual + hidden_states
 
@@ -650,7 +650,7 @@ class ModifiedGPT2Model(GPT2PreTrainedModel):
                 if self.config.add_cross_attention:
                     all_cross_attentions = all_cross_attentions + (outputs[3 if use_cache else 2],)
 
-        if not self.config.disable_layer_norm:
+        if not (self.config.disable_layer_norm or self.config.disable_final_layer_norm):
             hidden_states = self.ln_f(hidden_states)
 
         hidden_states = hidden_states.view(*output_shape)
