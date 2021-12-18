@@ -165,7 +165,7 @@ class ModifiedGPT2Config(PretrainedConfig):
         disable_layer_norm=False,
         disable_mha_layer_norm=False,
         disable_mlp_layer_norm=False,
-        disable_final_layer_norm=False
+        disable_final_layer_norm=False,
         **kwargs,
     ):
         self.vocab_size = vocab_size
