@@ -3,11 +3,10 @@ from typing import Callable
 
 import numpy as np
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
 
-from candbproj.result import PereiraResultSet
+from candbproj.result import PereiraResultSet, PereiraResult
 from candbproj.score import normalize_scores
 
 
@@ -93,7 +92,7 @@ def dfs_by_layer(grouped_results):
 
 
 def key_fill_axis(axis, df, key_name, label=None):
-    axis.set_title("Normalized scores by number of embeddings")
+    axis.set_title(f"Normalized scores by {key_name}")
     axis.errorbar(
         df[key_name],
         df["normalized_score"],
@@ -101,8 +100,9 @@ def key_fill_axis(axis, df, key_name, label=None):
         fmt=".k",
         label=label
     )
-    axis.set_xlabel("Heads")
+    axis.set_xlabel(key_name)
     axis.set_ylabel("Score")
+    plt.setp(axis.get_xticklabels(), rotation=30, horizontalalignment='right')
     if label is not None:
         axis.legend()
 
@@ -123,6 +123,26 @@ def layer_fill_axis(axis, dfs, labels):
     axis.legend()
 
 
+def embedding_group_mapper(result: PereiraResult):
+    return result.model_config.n_embd
+
+
+def get_untrained_data():
+
+    gpt2_embedding_result_path = "../../results/gpt2_varied_embeddings_result.pkl"
+    with open(gpt2_embedding_result_path, "rb") as f:
+        result_set: PereiraResultSet = pickle.load(f)
+
+    normalized_embedding_scores = extract_normalize_process(result_set, group_mapping=embedding_group_mapper)
+
+    default_initialization_result = normalized_embedding_scores[768]  # Get the default size
+    return default_initialization_result
+
+
 def generate_color():
-    for r in mcolors.BASE_COLORS:
+
+    colors = {**mcolors.BASE_COLORS, **mcolors.TABLEAU_COLORS}
+    colors.pop("w")
+
+    for r in colors:
         yield r
