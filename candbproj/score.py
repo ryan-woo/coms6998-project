@@ -109,9 +109,11 @@ def raw_score(experiments=None, experiment_stimuli=None, activations=None, folds
                     if np.isnan(r):
                         r = 0.0
                         nans += 1
-                        assert nans < 20
 
                     experiment_pearsonrs[experiment][fold][layer_num][idx] = r
+
+                if nans > 20:
+                    print("WARN: saw %s nans for fold=%s, layer=%s" % (nans, fold, layer_num))
 
     return experiment_pearsonrs
 
