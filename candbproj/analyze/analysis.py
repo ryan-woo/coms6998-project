@@ -140,8 +140,8 @@ def get_untrained_data():
 
 
 def generate_color():
-
-    colors = {**mcolors.BASE_COLORS, **mcolors.TABLEAU_COLORS}
+    css_colors = {k:v for k, v in mcolors.CSS4_COLORS.items() if k in {'lightcoral', 'palegreen', 'magenta'}}
+    colors = {**mcolors.BASE_COLORS, **mcolors.TABLEAU_COLORS, **css_colors}
     colors.pop("w")
 
     for r in colors:
