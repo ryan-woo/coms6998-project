@@ -31,7 +31,7 @@ def main():
     dfs = dfs_by_layer(normalized_lobotomy_scores)
     labels = [key for key in normalized_lobotomy_scores.keys()]
     layer_fill_axis(axis[0], dfs, labels)
-    axis[0].legend(loc="lower center", bbox_to_anchor=(0.5, -1.2))
+    axis[0].legend(loc="lower center", bbox_to_anchor=(0.35, -0.85), ncol=2)
 
     # In this case we only care about the last layer's scores
     final_results = {}
